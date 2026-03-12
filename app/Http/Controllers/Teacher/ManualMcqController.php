@@ -58,9 +58,39 @@ class ManualMcqController extends Controller
         ]);
 
         // Dispatch background job for question generation
-        GenerateQuestionsJob::dispatch($chapter, null, $request->question_format);
+        \App\Jobs\GenerateQuestionsJob::dispatch($chapter, null, $request->question_format);
 
         return redirect()->route('teacher.book.show', $book)
             ->with('success', 'Content saved! AI is now generating MCQs in the background.');
+    }
+
+    public function bulkImport(Request $request)
+    {
+        $request->validate([
+            'chapter_id' => 'required|exists:chapters,id',
+            'csv_data'   => 'required|string',
+        ]);
+
+        $rows = explode("\n", $request->csv_data);
+        $imported = 0;
+
+        foreach ($rows as $row) {
+            $data = str_getcsv($row, ",");
+            if (count($data) < 6) continue;
+
+            \App\Models\Question::create([
+                'chapter_id'     => $request->chapter_id,
+                'question'       => $data[0],
+                'option_a'       => $data[1],
+                'option_b'       => $data[2],
+                'option_c'       => $data[3],
+                'option_d'       => $data[4],
+                'correct_answer' => $data[5],
+                'type'           => 'mcq',
+            ]);
+            $imported++;
+        }
+
+        return back()->with('success', "Successfully imported {$imported} questions.");
     }
 }

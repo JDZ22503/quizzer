@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Topic extends Model
 {
-    protected $fillable = ['chapter_id', 'title', 'content'];
+    protected $fillable = ['chapter_id', 'ai_job_id', 'title', 'content'];
 
     public function chapter()
     {

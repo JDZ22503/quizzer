@@ -7,6 +7,7 @@ use App\Jobs\GenerateQuestionsJob;
 use App\Models\Book;
 use App\Models\Chapter;
 use App\Models\Subject;
+use App\Models\AiJob;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -46,12 +47,29 @@ class DashboardController extends Controller
 
         $books = $query->latest()->get();
 
+        // New: AI Job stats
+        $aiJobsPending = \App\Models\AiJob::where('teacher_id', $teacher->id)
+            ->whereIn('status', ['pending', 'processing'])
+            ->count();
+        
+        $aiJobsCompleted = \App\Models\AiJob::where('teacher_id', $teacher->id)
+            ->where('status', 'completed')
+            ->count();
+
+        // New: Overall stats for the selected standard/subject
+        $totalChapters = $books->sum(fn($b) => $b->chapters->count());
+        $totalQuestions = $books->sum(fn($b) => $b->chapters->sum(fn($c) => $c->questions->count()));
+
         return view('teacher.dashboard', compact(
             'teacher', 
             'books', 
             'selectedStandard', 
             'subjects', 
-            'selectedSubjectId'
+            'selectedSubjectId',
+            'aiJobsPending',
+            'aiJobsCompleted',
+            'totalChapters',
+            'totalQuestions'
         ));
     }
 
@@ -97,7 +115,13 @@ class DashboardController extends Controller
             'content'        => $request->content,
         ]);
 
-        GenerateQuestionsJob::dispatch($chapter, null, $request->question_format, $request->topic_title);
+        $aiJob = AiJob::create([
+            'teacher_id' => Auth::guard('teacher')->id(),
+            'chapter_id' => $chapter->id,
+            'status'     => 'pending',
+        ]);
+
+        GenerateQuestionsJob::dispatch($chapter, null, $request->question_format, $request->topic_title, $aiJob->job_id);
 
         return redirect()->route('teacher.book.show', $book)
             ->with('success', 'Chapter added manually. MCQ generation is processing.');
@@ -114,6 +138,17 @@ class DashboardController extends Controller
 
         return redirect()->route('teacher.book.show', $bookId)
             ->with('success', 'Chapter and its questions deleted successfully.');
+    }
+
+    public function updateChapter(Request $request, Chapter $chapter)
+    {
+        $data = $request->validate([
+            'title' => 'required|string|max:255',
+        ]);
+
+        $chapter->update($data);
+
+        return back()->with('success', 'Chapter updated successfully.');
     }
 
     public function deleteQuestions(Chapter $chapter, string $type)
@@ -145,8 +180,15 @@ class DashboardController extends Controller
             'content' => $chapter->content . "\n\n" . $newContent,
         ]);
 
+        $aiJob = AiJob::create([
+            'teacher_id' => Auth::guard('teacher')->id(),
+            'chapter_id' => $chapter->id,
+            'status'     => 'pending',
+            'prompt'     => 'Appended content: ' . mb_substr($newContent, 0, 50) . '...',
+        ]);
+
         // Dispatch job to generate MCQs *only* for the newly appended text
-        GenerateQuestionsJob::dispatch($chapter, $newContent, $request->question_format, $request->topic_title);
+        GenerateQuestionsJob::dispatch($chapter, $newContent, $request->question_format, $request->topic_title, $aiJob->job_id);
 
         return redirect()->route('teacher.book.show', $chapter->book_id)
             ->with('success', 'New content appended. MCQ generation for new text is processing.');
@@ -158,5 +200,79 @@ class DashboardController extends Controller
 
         return redirect()->route('teacher.book.show', $bookId)
             ->with('success', 'Topic explanation deleted successfully.');
+    }
+
+    public function subjectShow(Subject $subject)
+    {
+        $teacher = Auth::guard('teacher')->user();
+        $books = Book::where('teacher_id', $teacher->id)
+            ->where('subject_id', $subject->id)
+            ->withCount('chapters')
+            ->get();
+        
+        return view('teacher.subject-show', compact('subject', 'books'));
+    }
+
+    public function chapterShow(Request $request, Chapter $chapter)
+    {
+        $jobId = $request->query('job_id');
+        
+        $questions = $chapter->questions();
+        $topics = $chapter->topics();
+
+        if ($jobId) {
+            $questions->where('ai_job_id', $jobId);
+            $topics->where('ai_job_id', $jobId);
+        }
+
+        $questions = $questions->get();
+        $topics = $topics->get();
+
+        $chapter->load('book.subject');
+        
+        return view('teacher.chapter-show', [
+            'chapter' => $chapter,
+            'questions' => $questions,
+            'topics' => $topics,
+            'filteredByJob' => $jobId ? true : false
+        ]);
+    }
+
+    public function aiMonitor()
+    {
+        $teacher = Auth::guard('teacher')->user();
+        $jobs = \App\Models\AiJob::where('teacher_id', $teacher->id)
+            ->with('chapter.book')
+            ->latest()
+            ->paginate(15);
+        
+        return view('teacher.ai-monitor', compact('jobs'));
+    }
+
+    public function analytics()
+    {
+        $teacher = Auth::guard('teacher')->user();
+        // Simplified for now, will enhance later
+        return view('teacher.analytics', compact('teacher'));
+    }
+
+    public function settings()
+    {
+        $teacher = Auth::guard('teacher')->user();
+        return view('teacher.settings', compact('teacher'));
+    }
+
+    public function updateSettings(Request $request)
+    {
+        $teacher = Auth::guard('teacher')->user();
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:teachers,email,' . $teacher->id,
+            'preferred_language' => 'nullable|string',
+        ]);
+
+        $teacher->update($request->only('name', 'email', 'preferred_language'));
+
+        return back()->with('success', 'Settings updated successfully.');
     }
 }

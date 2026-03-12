@@ -1,117 +1,6 @@
 @extends('layouts.student')
 @section('title', 'Daily Challenge — Revizo')
 
-@push('styles')
-    <style>
-        .quiz-container {
-            max-width: 800px;
-            margin: 0 auto;
-        }
-
-        .quiz-header {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-lg);
-            padding: 2rem;
-            margin-bottom: 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .q-card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-xl);
-            padding: 2.25rem 2.5rem;
-            margin-bottom: 2rem;
-            display: none;
-            box-shadow: var(--shadow-md);
-        }
-
-        .q-card.active {
-            display: block;
-            animation: slide-up 0.4s ease-out;
-        }
-
-        @keyframes slide-up {
-            from {
-                opacity: 0;
-                transform: translateY(15px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .q-text {
-            font-size: 1.25rem;
-            font-weight: 800;
-            line-height: 1.4;
-            margin-bottom: 1.5rem;
-        }
-
-        .options-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 1rem;
-        }
-
-        @media (max-width: 640px) {
-            .options-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .option-card {
-            padding: 1.25rem 1.5rem;
-            background: var(--bg);
-            border: 2px solid var(--border);
-            border-radius: var(--radius-lg);
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 1.25rem;
-            font-weight: 700;
-        }
-
-        .option-card:hover {
-            border-color: var(--primary);
-            background: var(--surface);
-        }
-
-        .option-card.selected {
-            border-color: var(--primary);
-            background: var(--primary-light);
-            color: var(--primary);
-        }
-
-        .prog-circle {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: var(--primary);
-            color: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 800;
-        }
-
-        .mission-badge {
-            background: #fee2e2;
-            color: #ef4444;
-            padding: 0.5rem 1rem;
-            border-radius: 50px;
-            font-weight: 800;
-            font-size: 0.8rem;
-        }
-    </style>
-@endpush
-
 @section('content')
     <div class="quiz-container">
         <div class="quiz-header animate-in">
@@ -143,6 +32,7 @@
                     </div>
                 </div>
             @endforeach
+            <input type="hidden" name="time_taken" id="time_taken_input" value="0">
         </form>
 
         <div class="footer-actions animate-in" style="display: flex; justify-content: center; --delay: 0.3s">
@@ -150,7 +40,7 @@
                 Next Question <i class="bi bi-arrow-right"></i>
             </button>
             <button id="submit-btn" class="btn btn-primary btn-lg" style="width: 200px; display:none;"
-                onclick="document.getElementById('quiz-form').submit()">
+                onclick="submitChallenge()">
                 Finish Challenge! <i class="bi bi-fire"></i>
             </button>
         </div>
@@ -160,6 +50,7 @@
         <script>
             let currentIdx = 0;
             const total = {{ $questions->count() }};
+            let startTime = Date.now();
 
 
 
@@ -187,6 +78,14 @@
                         document.getElementById('submit-btn').style.display = 'block';
                     }
                 }
+            }
+
+            function submitChallenge() {
+                const submitBtn = document.getElementById('submit-btn');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = "Submitting...";
+                document.getElementById('time_taken_input').value = Math.floor((Date.now() - startTime) / 1000);
+                document.getElementById('quiz-form').submit();
             }
         </script>
     @endpush

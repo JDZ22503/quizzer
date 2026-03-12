@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Student;
 use App\Http\Controllers\Controller;
 use App\Models\Chapter;
 use App\Models\Question;
-use App\Models\Subject;
 use App\Models\QuizAttempt;
+use App\Models\Subject;
 use Illuminate\Http\Request;
 
 class QuizWebController extends Controller
@@ -16,10 +16,10 @@ class QuizWebController extends Controller
         $studentClass = auth()->guard('student')->user()->class;
         $studentMedium = auth()->guard('student')->user()->medium;
 
-        $subjectsQuery = Subject::with(['books' => function($query) use ($studentMedium) {
+        $subjectsQuery = Subject::with(['books' => function ($query) use ($studentMedium) {
             $query->where('medium', $studentMedium);
         }]);
-        
+
         if ($studentClass) {
             $subjectsQuery->where('class', $studentClass);
         }
@@ -32,16 +32,20 @@ class QuizWebController extends Controller
     public function subjectShow(int $id)
     {
         $studentMedium = auth()->guard('student')->user()->medium;
-        $subject = Subject::with(['books' => function($query) use ($studentMedium) {
+        $subject = Subject::with(['books' => function ($query) use ($studentMedium) {
             $query->where('medium', $studentMedium)
-                  ->with(['chapters' => function($q) {
-                      $q->with(['topics' => function($t) {
-                          $t->orderBy('created_at');
-                      }])->withCount([
-                          'questions as mcq_count' => function ($sq) { $sq->where('type', 'mcq'); },
-                          'questions as qa_count' => function ($sq) { $sq->where('type', 'qa'); }
-                      ])->orderBy('chapter_number');
-                  }]);
+                ->with(['chapters' => function ($q) {
+                    $q->with(['topics' => function ($t) {
+                        $t->orderBy('created_at');
+                    }])->withCount([
+                        'questions as mcq_count' => function ($sq) {
+                            $sq->where('type', 'mcq');
+                        },
+                        'questions as qa_count' => function ($sq) {
+                            $sq->where('type', 'qa');
+                        },
+                    ])->orderBy('chapter_number');
+                }]);
         }])->findOrFail($id);
 
         return view('student.subject-show', compact('subject'));
@@ -50,22 +54,22 @@ class QuizWebController extends Controller
     public function dashboard(Request $request)
     {
         $student = auth()->guard('student')->user();
-        
+
         // 1. Momentum Chart Data (Default 14 days)
         $days = $request->get('days', 14);
         $activityData = [];
         for ($i = $days - 1; $i >= 0; $i--) {
             $date = now()->subDays($i)->format('Y-m-d');
-            // Using whereDate and student_id. Ensure we only count unique CHAPTER attempts if that's the intent, 
+            // Using whereDate and student_id. Ensure we only count unique CHAPTER attempts if that's the intent,
             // but usually "total quizzes" means any attempt.
             $count = QuizAttempt::where('student_id', $student->id)
                 ->whereDate('created_at', $date)
                 ->count();
-            
+
             $activityData[] = [
                 'date' => $date,
                 'count' => $count,
-                'label' => now()->subDays($i)->format('j')
+                'label' => now()->subDays($i)->format('j'),
             ];
         }
 
@@ -78,19 +82,19 @@ class QuizWebController extends Controller
                 ->where('type', 'daily')
                 ->whereDate('created_at', $date)
                 ->exists();
-            
+
             $weekDays[] = [
                 'label' => $date->format('M j'),
                 'short' => $date->format('D')[0],
                 'active' => $wasActive,
-                'isToday' => $date->isToday()
+                'isToday' => $date->isToday(),
             ];
         }
 
         // 2. Full Monthly Calendar Data with Navigation
         $month = $request->get('month', now()->month);
         $year = $request->get('year', now()->year);
-        
+
         $date = \Carbon\Carbon::createFromDate($year, $month, 1);
         $daysInMonth = $date->daysInMonth;
         $startOfMonth = $date->copy()->startOfMonth();
@@ -109,7 +113,7 @@ class QuizWebController extends Controller
 
         for ($day = 1; $day <= $daysInMonth; $day++) {
             $dateStr = sprintf('%04d-%02d-%02d', $year, $month, $day);
-            $wasActive = $attemptsOfMonth->contains(function($attempt) use ($dateStr) {
+            $wasActive = $attemptsOfMonth->contains(function ($attempt) use ($dateStr) {
                 return $attempt->created_at->format('Y-m-d') === $dateStr;
             });
 
@@ -121,7 +125,7 @@ class QuizWebController extends Controller
                 'active' => $wasActive,
                 'isToday' => now()->isSameDay($currentDateObj),
                 'isPast' => $isPast,
-                'padding' => false
+                'padding' => false,
             ];
         }
 
@@ -143,7 +147,7 @@ class QuizWebController extends Controller
             ->get();
 
         return view('student.dashboard', compact(
-            'student', 'activityData', 'weekDays', 'calendarData', 
+            'student', 'activityData', 'weekDays', 'calendarData',
             'currentMonthName', 'currentMonth', 'currentYear', 'prevUrl', 'nextUrl', 'days', 'recentQuizzes'
         ));
     }
@@ -157,7 +161,7 @@ class QuizWebController extends Controller
                 },
                 'questions as qa_count' => function ($query) {
                     $query->where('type', 'qa');
-                }
+                },
             ])
             ->orderBy('chapter_number')
             ->get();
@@ -178,7 +182,7 @@ class QuizWebController extends Controller
 
         if ($lastAttempt) {
             return redirect()->route('student.chapters', $chapter->book_id)
-                ->with('error', "You already completed this quiz. You can retake it after 7 days.");
+                ->with('error', 'You already completed this quiz. You can retake it after 7 days.');
         }
 
         $questions = Question::where('chapter_id', $chapter_id)
@@ -204,7 +208,7 @@ class QuizWebController extends Controller
     public function dailyChallenge()
     {
         $student = auth()->guard('student')->user();
-        
+
         // Check if already done today
         if ($student->last_streak_at && $student->last_streak_at->isToday()) {
             return redirect()->route('student.subjects')->with('info', "You've already completed today's challenge! Come back tomorrow.");
@@ -213,18 +217,18 @@ class QuizWebController extends Controller
         // Fetch 5 random MCQs from all books available to student's class and medium
         $subjectIds = Subject::where('class', $student->class)->pluck('id');
         $studentMedium = $student->medium;
-        
-        $questions = Question::whereHas('chapter.book', function($q) use ($subjectIds, $studentMedium) {
-                $q->whereIn('subject_id', $subjectIds)
-                  ->where('medium', $studentMedium);
-            })
+
+        $questions = Question::whereHas('chapter.book', function ($q) use ($subjectIds, $studentMedium) {
+            $q->whereIn('subject_id', $subjectIds)
+                ->where('medium', $studentMedium);
+        })
             ->where('type', 'mcq')
             ->inRandomOrder()
             ->limit(5)
             ->get();
 
         if ($questions->count() < 5) {
-            return redirect()->route('student.subjects')->with('error', "Not enough questions available for a Daily Challenge yet.");
+            return redirect()->route('student.subjects')->with('error', 'Not enough questions available for a Daily Challenge yet.');
         }
 
         return view('student.daily-challenge', compact('questions'));
@@ -232,7 +236,7 @@ class QuizWebController extends Controller
 
     public function study(int $chapter_id)
     {
-        $chapter   = Chapter::findOrFail($chapter_id);
+        $chapter = Chapter::findOrFail($chapter_id);
         $questions = Question::where('chapter_id', $chapter_id)
             ->where('type', 'qa')
             ->orderBy('id')
@@ -244,33 +248,43 @@ class QuizWebController extends Controller
     public function topic(int $id)
     {
         $topic = \App\Models\Topic::with('chapter.book')->findOrFail($id);
+
         return view('student.topic', compact('topic'));
     }
 
     public function submit(Request $request)
     {
         $request->validate([
-            'answers'               => 'required|array',
+            'answers' => 'required|array',
             'answers.*.question_id' => 'required|exists:questions,id',
-            'answers.*.answer'      => 'nullable|in:A,B,C,D',
+            'answers.*.answer' => 'nullable|in:A,B,C,D',
         ]);
 
         $student = auth()->guard('student')->user();
-        $score   = 0;
-        $total   = count($request->answers);
+        $score = 0;
+        $total = count($request->answers);
+
+        $questionIds = collect($request->answers)->pluck('question_id');
+        $questions = Question::whereIn('id', $questionIds)->get()->keyBy('id');
 
         $details = [];
         foreach ($request->answers as $a) {
-            $q       = Question::find($a['question_id']);
+            $q = $questions->get($a['question_id']);
+            if (! $q) {
+                continue;
+            }
+
             $answerVal = $a['answer'] ?? '';
             $correct = $answerVal ? (strtoupper($q->correct_answer) === strtoupper($answerVal)) : false;
-            
-            if ($correct) $score++;
-            
+
+            if ($correct) {
+                $score++;
+            }
+
             $details[] = [
                 'question_id' => $q->id,
                 'user_answer' => $answerVal,
-                'is_correct'  => $correct,
+                'is_correct' => $correct,
             ];
         }
 
@@ -279,20 +293,18 @@ class QuizWebController extends Controller
         $attempt = QuizAttempt::create([
             'student_id' => $student->id,
             'chapter_id' => $request->chapter_id,
-            'score'      => $score,
-            'total'      => $total,
-            'accuracy'   => $accuracy,
-            'type'       => 'chapter',
-            'details'    => $details,
+            'score' => $score,
+            'total' => $total,
+            'accuracy' => $accuracy,
+            'time_taken' => $request->time_taken,
+            'type' => 'chapter',
+            'details' => $details,
         ]);
 
-        // Gamification Logic (XP ONLY)
+        // Gamification Logic (XP & League)
         $xpEarned = $score * 2;
         $student->xp += $xpEarned;
-
-        // Level Up Logic (100 XP per level)
-        $newLevel = floor($student->xp / 100) + 1;
-        $student->level = max($student->level, $newLevel);
+        $student->recalculateLeague();
 
         $student->last_active_at = now();
         $student->save();
@@ -303,13 +315,13 @@ class QuizWebController extends Controller
     public function submitDailyChallenge(Request $request)
     {
         $request->validate([
-            'answers'               => 'required|array',
+            'answers' => 'required|array',
             'answers.*.question_id' => 'required|exists:questions,id',
-            'answers.*.answer'      => 'nullable|in:A,B,C,D',
+            'answers.*.answer' => 'nullable|in:A,B,C,D',
         ]);
 
         $student = auth()->guard('student')->user();
-        
+
         if ($student->last_streak_at && $student->last_streak_at->isToday()) {
             return redirect()->route('student.subjects')->with('info', "Already completed today's challenge.");
         }
@@ -317,43 +329,55 @@ class QuizWebController extends Controller
         $score = 0;
         $total = count($request->answers);
 
+        $questionIds = collect($request->answers)->pluck('question_id');
+        $questions = Question::whereIn('id', $questionIds)->get()->keyBy('id');
+
         $details = [];
         foreach ($request->answers as $a) {
-            $q = Question::find($a['question_id']);
+            $q = $questions->get($a['question_id']);
+            if (! $q) {
+                continue;
+            }
+
             $answerVal = $a['answer'] ?? '';
             $correct = $answerVal ? (strtoupper($q->correct_answer) === strtoupper($answerVal)) : false;
-            
-            if ($correct) $score++;
-            
+
+            if ($correct) {
+                $score++;
+            }
+
             $details[] = [
                 'question_id' => $q->id,
                 'user_answer' => $answerVal,
-                'is_correct'  => $correct,
+                'is_correct' => $correct,
             ];
         }
 
         // Record the attempt
         $accuracy = ($total > 0) ? ($score / $total) * 100 : 0;
+        
+        $firstQuestion = $questions->first();
         $attempt = QuizAttempt::create([
             'student_id' => $student->id,
-            'chapter_id' => $q->chapter_id, // Link to one chapter just for DB constraints
-            'score'      => $score,
-            'total'      => $total,
-            'accuracy'   => $accuracy,
-            'type'       => 'daily',
-            'details'    => $details,
+            'chapter_id' => $firstQuestion ? $firstQuestion->chapter_id : null,
+            'score' => $score,
+            'total' => $total,
+            'accuracy' => $accuracy,
+            'time_taken' => $request->time_taken,
+            'type' => 'daily',
+            'details' => $details,
         ]);
 
         // Streak & XP Logic
-        $xpEarned = $score * 2; 
+        $xpEarned = $score * 2;
         $student->xp += $xpEarned;
 
-        // Level Up 
+        // Level Up
         $student->level = max($student->level, floor($student->xp / 100) + 1);
 
         // Streak Maintenance
         $yesterday = now()->subDay()->startOfDay();
-        if (!$student->last_streak_at || $student->last_streak_at->startOfDay()->lessThan($yesterday)) {
+        if (! $student->last_streak_at || $student->last_streak_at->startOfDay()->lessThan($yesterday)) {
             $student->streak = 1;
         } else {
             $student->streak += 1;
@@ -362,6 +386,25 @@ class QuizWebController extends Controller
         $student->last_streak_at = now();
         $student->last_active_at = now();
         $student->save();
+
+        // Permanent Badge Awarding
+        $milestones = [
+            3   => 'streak_3',
+            7   => 'streak_7',
+            14  => 'streak_14',
+            30  => 'streak_30',
+            60  => 'streak_60',
+            100 => 'streak_100',
+        ];
+
+        foreach ($milestones as $days => $slug) {
+            if ($student->streak >= $days) {
+                \App\Models\StudentBadge::firstOrCreate([
+                    'student_id' => $student->id,
+                    'badge_slug' => $slug,
+                ]);
+            }
+        }
 
         return redirect()->route('student.quiz.results', $attempt->id)->with('success', "🔥 Daily Challenge Complete! Streak: {$student->streak} Days.");
     }
@@ -375,22 +418,27 @@ class QuizWebController extends Controller
 
         $results = [];
         if ($attempt->details) {
+            $questionIds = collect($attempt->details)->pluck('question_id');
+            $questions = Question::whereIn('id', $questionIds)->get()->keyBy('id');
+
             foreach ($attempt->details as $detail) {
-                $q = Question::find($detail['question_id']);
-                if (!$q) continue;
+                $q = $questions->get($detail['question_id']);
+                if (! $q) {
+                    continue;
+                }
 
                 $results[] = [
-                    'question'      => $q->question,
-                    'options'       => [
+                    'question' => $q->question,
+                    'options' => [
                         'A' => $q->option_a,
                         'B' => $q->option_b,
                         'C' => $q->option_c,
                         'D' => $q->option_d,
                     ],
                     'correct_answer' => $q->correct_answer,
-                    'user_answer'    => $detail['user_answer'],
-                    'is_correct'     => $detail['is_correct'],
-                    'explanation'    => $q->explanation,
+                    'user_answer' => $detail['user_answer'],
+                    'is_correct' => $detail['is_correct'],
+                    'explanation' => $q->explanation,
                 ];
             }
         }
@@ -407,5 +455,115 @@ class QuizWebController extends Controller
             ->paginate(15);
 
         return view('student.history', compact('attempts'));
+    }
+
+    public function leaderboard()
+    {
+        $student = auth()->guard('student')->user();
+        $topStudents = \App\Models\Student::where('class', $student->class)
+            ->orderBy('xp', 'desc')
+            ->limit(10)
+            ->get();
+
+        return view('student.leaderboard', compact('topStudents', 'student'));
+    }
+
+    public function rewards()
+    {
+        $student = auth()->guard('student')->user();
+
+        // Auto-Sync: Award missing permanent badges based on current streak
+        $milestones = [
+            3   => 'streak_3',
+            7   => 'streak_7',
+            14  => 'streak_14',
+            30  => 'streak_30',
+            60  => 'streak_60',
+            100 => 'streak_100',
+        ];
+
+        foreach ($milestones as $days => $slug) {
+            if ($student->streak >= $days) {
+                \App\Models\StudentBadge::firstOrCreate([
+                    'student_id' => $student->id,
+                    'badge_slug' => $slug,
+                ]);
+            }
+        }
+
+        $earnedBadges = $student->earnedBadges()->pluck('badge_slug')->toArray();
+
+        // Dynamic Badge Calculation
+        $badges = [
+            [
+                'name' => 'Early Adopter',
+                'icon' => 'bi-patch-check-fill',
+                'color' => 'primary',
+                'locked' => false,
+                'desc' => 'Joined during the beta phase.',
+            ],
+            [
+                'name' => 'Bronze Streak',
+                'icon' => 'bi-fire',
+                'color' => 'secondary',
+                'locked' => ! in_array('streak_3', $earnedBadges) && $student->streak < 3,
+                'desc' => 'Maintain a 3-day daily streak.',
+            ],
+            [
+                'name' => 'Silver Streak',
+                'icon' => 'bi-fire',
+                'color' => 'info',
+                'locked' => ! in_array('streak_7', $earnedBadges) && $student->streak < 7,
+                'desc' => 'Maintain a 7-day daily streak.',
+            ],
+            [
+                'name' => 'Gold Streak',
+                'icon' => 'bi-fire',
+                'color' => 'warning',
+                'locked' => ! in_array('streak_14', $earnedBadges) && $student->streak < 14,
+                'desc' => 'Maintain a 14-day daily streak.',
+            ],
+            [
+                'name' => 'Epic Streak',
+                'icon' => 'bi-fire',
+                'color' => 'danger',
+                'locked' => ! in_array('streak_30', $earnedBadges) && $student->streak < 30,
+                'desc' => 'Maintain a 30-day daily streak.',
+            ],
+            [
+                'name' => 'Master Streak',
+                'icon' => 'bi-fire',
+                'color' => 'dark',
+                'locked' => ! in_array('streak_60', $earnedBadges) && $student->streak < 60,
+                'desc' => 'Maintain a 60-day daily streak.',
+            ],
+            [
+                'name' => 'Century Streak',
+                'icon' => 'bi-fire',
+                'color' => 'primary',
+                'locked' => ! in_array('streak_100', $earnedBadges) && $student->streak < 100,
+                'desc' => 'Maintain a 100-day daily streak!',
+            ],
+            [
+                'name' => 'Ace Student',
+                'icon' => 'bi-award-fill',
+                'color' => 'success',
+                'locked' => QuizAttempt::where('student_id', $student->id)
+                    ->where('accuracy', 100)
+                    ->where('type', 'chapter')
+                    ->distinct('chapter_id')
+                    ->count() < 5,
+                'desc' => 'Score 100% on 5 different chapters.',
+            ],
+        ];
+
+        return view('student.rewards', compact('student', 'badges'));
+    }
+
+    public function profile()
+    {
+        $student = auth()->guard('student')->user();
+
+        return view('student.profile', compact('student'));
     }
 }

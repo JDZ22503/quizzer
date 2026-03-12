@@ -8,6 +8,7 @@ class Question extends Model
 {
     protected $fillable = [
         'chapter_id',
+        'ai_job_id',
         'type',
         'question',
         'option_a',
@@ -17,6 +18,9 @@ class Question extends Model
         'correct_answer',
         'explanation',
         'difficulty',
+        'status',
+        'moderated_by',
+        'moderated_at',
     ];
 
     public function chapter()

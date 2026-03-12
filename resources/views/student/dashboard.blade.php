@@ -1,453 +1,309 @@
 @extends('layouts.student')
 @section('title', 'Your Progress — Revizo')
 
-@push('styles')
-    <style>
-        .dashboard-container {
-            max-width: 1000px;
-            margin: 0 auto;
-        }
-
-        .dash-grid {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 1.5rem;
-        }
-
-        .stat-card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-lg);
-            padding: 1.5rem;
-            box-shadow: var(--shadow-sm);
-        }
-
-        .card-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 1.5rem;
-        }
-
-        .card-title {
-            font-size: 1.15rem;
-            font-weight: 800;
-            color: var(--text);
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .xp-vignette {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            border-radius: var(--radius-lg);
-            padding: 1.5rem;
-            color: #fff;
-            position: relative;
-            overflow: hidden;
-            grid-column: span 2;
-            margin-bottom: 1rem;
-        }
-
-        .vignette-content {
-            position: relative;
-            z-index: 2;
-        }
-
-        .xp-display {
-            position: absolute;
-            top: 1.5rem;
-            right: 1.5rem;
-            text-align: right;
-            z-index: 3;
-        }
-
-        .xp-large {
-            font-size: 2.5rem;
-            font-weight: 800;
-            line-height: 1;
-            margin: 0;
-        }
-
-        .xp-label {
-            font-size: 0.9rem;
-            font-weight: 700;
-            opacity: 0.8;
-            letter-spacing: 0.05em;
-        }
-
-        .vignette-icon {
-            position: absolute;
-            left: -20px;
-            bottom: -20px;
-            font-size: 8rem;
-            opacity: 0.1;
-            transform: rotate(15deg);
-        }
-
-        .lvl-badge {
-            background: rgba(255, 255, 255, 0.2);
-            padding: 0.4rem 1rem;
-            border-radius: 30px;
-            font-size: 0.85rem;
-            font-weight: 800;
-            display: inline-block;
-            margin-bottom: 1rem;
-            backdrop-filter: blur(4px);
-        }
-
-        .streak-calendar {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 0.75rem;
-        }
-
-        .day-box {
-            aspect-ratio: 1;
-            background: var(--bg);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.85rem;
-            font-weight: 700;
-            color: var(--text-light);
-            transition: all 0.2s;
-        }
-
-        .day-box.active {
-            background: var(--success);
-            color: #fff;
-            border-color: var(--success);
-            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
-        }
-
-        .progress-circle {
-            width: 110px;
-            height: 110px;
-            border-radius: 50%;
-            background: conic-gradient(var(--primary) calc({{ $student->accuracy }} * 1%), var(--border) 0);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto;
-            position: relative;
-        }
-
-        .progress-circle::after {
-            content: '{{ $student->accuracy }}%';
-            width: 85px;
-            height: 85px;
-            background: var(--surface);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.25rem;
-            font-weight: 800;
-            color: var(--text);
-        }
-
-        @media (max-width: 850px) {
-            .dash-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .xp-vignette {
-                grid-column: span 1;
-            }
-        }
-    </style>
-@endpush
-
 @section('content')
     <div class="dashboard-container">
-        <div class="page-header animate-in" style="margin-bottom: 1.5rem;">
-            <h1 style="font-size: 1.75rem;"><i class="bi bi-rocket-takeoff"></i> Your Growth Journey</h1>
-            <p style="font-size: 1rem; color: var(--text-light);">Visualize your progress and celebrate your learning
-                milestones.</p>
+        <div class="page-header animate-in mt-4 mb-4">
+            <h1 class="fs-4"><i class="bi bi-rocket-takeoff"></i> Your Growth Journey</h1>
+            <p class="text-muted mb-0">Visualize your progress and celebrate your learning milestones.</p>
         </div>
 
-        <div class="dash-grid">
-            <div class="xp-vignette animate-in"
-                style="--delay: 0.1s; background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);">
-                <div class="vignette-content">
-                    <div class="lvl-badge">LEVEL {{ $student->level }} STUDENT</div>
-                    <div class="xp-display">
-                        <div class="xp-large">{{ $student->xp }}</div>
-                        <div class="xp-label">TOTAL XP</div>
-                    </div>
-                    <p style="font-weight: 600; font-size: 1.1rem; opacity: 0.95; max-width: 60%;">
+        <div class="row g-4 mb-4">
+            <div class="col-12">
+                <div class="rounded-4 p-4 text-white position-relative overflow-hidden animate-in d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-4"
+                    style="--delay: 0.1s; background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);">
+                    <div class="position-relative z-2 w-100" style="max-width: 600px;">
                         @php
-                            $nextLevelXp = $student->level * 100;
-                            $currentLevelBase = ($student->level - 1) * 100;
-                            $progressInLevel = $student->xp - $currentLevelBase;
-                            $remaining = 100 - $progressInLevel;
-                            $progressPercent = ($progressInLevel / 100) * 100;
+                            $leagueColor = match ($student->league) {
+                                'bronze' => '#cd7f32',
+                                'silver' => '#c0c0c0',
+                                'diamond' => '#b9f2ff',
+                                'champion' => '#ffd700',
+                                default => '#ffffff',
+                            };
+                            $textColor =
+                                $student->league == 'champion' || $student->league == 'diamond' ? '#1a1a1a' : '#ffffff';
                         @endphp
-                        {{ $remaining }} XP to Level {{ $student->level + 1 }}! Keep pushing!
-                    </p>
-                    <div class="progress-container"
-                        style="background: rgba(0,0,0,0.25); height: 16px; margin-top: 1.5rem; border: 2px solid rgba(255,255,255,0.3); border-radius: 20px; max-width: 60%; overflow: hidden; position: relative;">
-                        <!-- Highlight Glow -->
-                        <div class="progress-fill"
-                            style="background: linear-gradient(90deg, #FFD700 0%, #FF8C00 100%); width: {{ $progressPercent }}%; height: 100%; box-shadow: 0 0 15px rgba(255, 215, 0, 0.6); border-radius: 20px; transition: width 1s ease-in-out;">
+                        <div class="badge rounded-pill px-3 py-2 mb-3 fw-bold shadow-sm"
+                            style="background: {{ $leagueColor }}; color: {{ $textColor }}; font-size: 0.85rem; border: 1px solid rgba(255,255,255,0.2);">
+                            <i class="bi bi-trophy-fill me-1"></i>
+                            {{ strtoupper($student->league) }} {{ $student->league_level }}
                         </div>
-                    </div>
-                </div>
-                <div class="vignette-icon"><i class="bi bi-mortarboard"></i></div>
-            </div>
 
-            <div class="stat-card animate-in" style="--delay: 0.2s">
-                <div class="card-header" style="margin-bottom: 1rem;">
-                    <div>
-                        <div class="card-title" style="font-size: 1.05rem;"><i class="bi bi-calendar-event"></i>
-                            {{ $currentMonthName }} {{ $currentYear }}
-                            Commitment</div>
-                        <p style="font-size: 0.7rem; color: var(--text-light); font-weight: 700; margin-top: 0.15rem;">
-                            Daily Streak Tracking</p>
-                    </div>
-                    <div style="display: flex; gap: 0.5rem; align-items: center;">
-                        <a href="{{ $prevUrl }}" class="btn btn-ghost"
-                            style="padding: 0.25rem 0.5rem; height: auto;">&lt;</a>
-                        <div
-                            style="font-weight: 800; color: var(--primary); background: var(--primary-light); padding: 0.25rem 0.75rem; border-radius: 8px; font-size: 0.8rem;">
-                            {{ $student->streak }} Day Streak
-                        </div>
-                        <a href="{{ $nextUrl }}" class="btn btn-ghost"
-                            style="padding: 0.25rem 0.5rem; height: auto;">&gt;</a>
-                    </div>
-                </div>
-
-                <div class="calendar-grid"
-                    style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; width: 100%;">
-                    @foreach (['S', 'M', 'T', 'W', 'T', 'F', 'S'] as $h)
-                        <div
-                            style="text-align: center; font-size: 0.75rem; font-weight: 900; color: var(--text-light); padding-bottom: 4px;">
-                            {{ $h }}</div>
-                    @endforeach
-
-                    @foreach ($calendarData as $day)
-                        @if ($day['padding'])
-                            <div style="width: 100%; max-width: 60px; aspect-ratio: 1; margin: 0 auto;"></div>
-                        @else
+                        <p class="fw-bold mb-4" style="font-size: 1.1rem; opacity: 0.95;">
                             @php
-                                $cellBg = '#F8FAFC';
-                                $border = '1px solid var(--border)';
-                                $color = 'var(--text-light)';
-                                if ($day['active']) {
-                                    $cellBg = 'var(--success)';
-                                    $border = 'none';
-                                    $color = '#fff';
-                                } elseif ($day['isPast']) {
-                                    $cellBg = '#FEF2F2';
-                                    $border = '1px solid #FECACA';
-                                    $color = '#DC2626';
+                                // Calculate next threshold for progress bar
+                                $leagues = ['bronze', 'silver', 'diamond', 'champion'];
+                                $levels = [5, 4, 3, 2, 1];
+                                $nextThreshold = 0;
+                                $found = false;
+                                foreach ($leagues as $l) {
+                                    foreach ($levels as $lv) {
+                                        $key = "league_{$l}_{$lv}_xp";
+                                        $threshold = \App\Models\Setting::get($key, 0);
+                                        if ($threshold > $student->xp) {
+                                            $nextThreshold = $threshold;
+                                            $nextName = ucfirst($l) . ' ' . $lv;
+                                            $found = true;
+                                            break 2;
+                                        }
+                                    }
                                 }
 
-                                if ($day['isToday'] && !$day['active']) {
-                                    $border = '2px solid var(--primary)';
-                                    $color = 'var(--primary)';
+                                if ($found) {
+                                    $remaining = $nextThreshold - $student->xp;
+                                    $progressPercent =
+                                        $student->xp > 0 ? min(100, ($student->xp / $nextThreshold) * 100) : 0;
+                                    $text = "$remaining XP to $nextName! Keep pushing!";
+                                } else {
+                                    $progressPercent = 100;
+                                    $text = "You've reached the Max League! You are a Champion!";
                                 }
                             @endphp
-                            <div class="calendar-day"
-                                style="width: 100%; max-width: 60px; aspect-ratio: 1; margin: 0 auto; border-radius: 8px; background: {{ $cellBg }}; 
-                                        display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 800; 
-                                        color: {{ $color }}; border: {{ $border }}; transition: all 0.2s; position: relative;">
-                                {{ $day['day'] }}
-                                @if ($day['isToday'])
-                                    <div
-                                        style="position: absolute; bottom: 2px; width: 4px; height: 4px; border-radius: 50%; background: {{ $day['active'] ? '#fff' : 'var(--primary)' }};">
-                                    </div>
-                                @endif
+                            {{ $text }}
+                        </p>
+                        <div class="rounded-pill position-relative overflow-hidden bg-black bg-opacity-25"
+                            style="height: 16px; border: 2px solid rgba(255,255,255,0.3);">
+                            <div class="h-100 rounded-pill shadow-sm"
+                                style="background: linear-gradient(90deg, #FFD700 0%, #FF8C00 100%); width: {{ $progressPercent }}%; transition: width 1s ease-in-out;">
                             </div>
-                        @endif
-                    @endforeach
-                </div>
+                        </div>
+                    </div>
 
-                <div
-                    style="display: flex; align-items: center; gap: 1rem; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border);">
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <div style="width: 12px; height: 12px; background: var(--success); border-radius: 3px;"></div>
-                        <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-light);">Active</span>
+                    <div class="text-md-end text-start position-relative z-3 flex-shrink-0">
+                        <div class="fw-bolder" style="font-size: 3rem; line-height: 1;">{{ $student->xp }}</div>
+                        <div class="fw-bold text-white-50" style="letter-spacing: 0.05em; font-size: 0.9rem;">TOTAL XP</div>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <div
-                            style="width: 12px; height: 12px; background: #FEF2F2; border: 1px solid #FECACA; border-radius: 3px;">
+
+                    <div class="position-absolute text-white"
+                        style="font-size: 10rem; left: -20px; bottom: -60px; transform: rotate(15deg); opacity: 0.1;"><i
+                            class="bi bi-mortarboard"></i></div>
+                </div>
+            </div>
+
+            <div class="col-lg-7 col-xl-8">
+                <div class="card border-0 shadow-sm rounded-4 p-4 animate-in h-100" style="--delay: 0.2s">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+                        <div>
+                            <div class="card-title fs-5 fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                                <i class="bi bi-calendar-event"></i>
+                                {{ $currentMonthName }} {{ $currentYear }} Commitment
+                            </div>
+                            <p class="small text-muted fw-bold mt-1 mb-0">
+                                Daily Streak Tracking</p>
                         </div>
-                        <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-light);">Missed</span>
+                        <div class="d-flex align-items-center gap-2">
+                            <a href="{{ $prevUrl }}" class="btn btn-light btn-sm px-2 py-1">&lt;</a>
+                            <div class="badge bg-primary-subtle text-primary rounded-pill px-3 py-2 fw-bold"
+                                style="font-size: 0.85rem;">
+                                {{ $student->streak }} Day Streak
+                            </div>
+                            <a href="{{ $nextUrl }}" class="btn btn-light btn-sm px-2 py-1">&gt;</a>
+                        </div>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <div
-                            style="width: 12px; height: 12px; background: #fff; border: 2px solid var(--primary); border-radius: 3px;">
+
+                    <div class="d-grid w-100 flex-grow-1"
+                        style="grid-template-columns: repeat(7, 1fr); gap: 0.5rem; align-content: center;">
+                        @foreach (['S', 'M', 'T', 'W', 'T', 'F', 'S'] as $h)
+                            <div class="text-center small fw-bold text-muted pb-1">
+                                {{ $h }}</div>
+                        @endforeach
+
+                        @foreach ($calendarData as $day)
+                            @if ($day['padding'])
+                                <div class="bg-transparent border-0"></div>
+                            @else
+                                @php
+                                    $cellBg = 'bg-light';
+                                    $cellBorder = 'border';
+                                    $cellText = 'text-muted';
+                                    $cellShadow = '';
+                                    if ($day['active']) {
+                                        $cellBg = 'bg-success';
+                                        $cellBorder = 'border-0';
+                                        $cellText = 'text-white';
+                                        $cellShadow = 'shadow-sm';
+                                    } elseif ($day['isPast']) {
+                                        $cellBg = 'bg-danger-subtle';
+                                        $cellBorder = 'border border-danger-subtle';
+                                        $cellText = 'text-danger';
+                                    }
+
+                                    if ($day['isToday'] && !$day['active']) {
+                                        $cellBorder = 'border border-2 border-primary';
+                                        $cellText = 'text-primary';
+                                    }
+                                @endphp
+                                <div class="w-100 mx-auto rounded-3 d-flex align-items-center justify-content-center fw-bold position-relative {{ $cellBg }} {{ $cellBorder }} {{ $cellText }} {{ $cellShadow }}"
+                                    style="max-width: 60px; aspect-ratio: 1; font-size: 0.85rem; transition: all 0.2s;">
+                                    {{ $day['day'] }}
+                                    @if ($day['isToday'])
+                                        <div class="position-absolute rounded-circle"
+                                            style="bottom: 4px; width: 4px; height: 4px; background-color: {{ $day['active'] ? '#fff' : 'var(--bs-primary)' }};">
+                                        </div>
+                                    @endif
+                                </div>
+                            @endif
+                        @endforeach
+                    </div>
+
+                    <div class="d-flex align-items-center gap-3 mt-4 pt-3 border-top w-100 flex-wrap mt-auto">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="bg-success rounded" style="width: 12px; height: 12px;"></div>
+                            <span class="small fw-bold text-muted" style="font-size: 0.7rem;">Active</span>
                         </div>
-                        <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-light);">Today</span>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="bg-danger-subtle border border-danger-subtle rounded"
+                                style="width: 12px; height: 12px;"></div>
+                            <span class="small fw-bold text-muted" style="font-size: 0.7rem;">Missed</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="bg-white border border-2 border-primary rounded" style="width: 12px; height: 12px;">
+                            </div>
+                            <span class="small fw-bold text-muted" style="font-size: 0.7rem;">Today</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="stat-card animate-in" style="--delay: 0.3s">
-                <div class="card-header">
-                    <div class="card-title" style="font-size: 1.05rem;"><i class="bi bi-target"></i> Mastery Level</div>
-                    <a href="{{ route('student.history') }}" class="btn btn-ghost"
-                        style="font-size: 0.75rem; font-weight: 800; padding: 0.4rem 0.8rem; border: 1px solid var(--border); border-radius: 8px;">
-                        <i class="bi bi-clock-history"></i> History
-                    </a>
-                </div>
-                <div class="progress-circle"></div>
-                <div style="text-align: center; margin-top: 1.5rem; margin-bottom: 2rem;">
-                    @php
-                        $acc = $student->accuracy;
-                        $label = 'Beginner';
-                        $color = '#94a3b8';
-                        if ($acc >= 90) {
-                            $label = 'Elite Expert';
-                            $color = '#10b981';
-                        } elseif ($acc >= 80) {
-                            $label = 'High Proficiency';
-                            $color = '#3b82f6';
-                        } elseif ($acc >= 60) {
-                            $label = 'Average Learner';
-                            $color = '#f59e0b';
-                        } else {
-                            $label = 'Needs Focus';
-                            $color = '#ef4444';
-                        }
-                    @endphp
-                    <div style="font-weight: 800; color: {{ $color }}; font-size: 1.1rem;">{{ $label }}
+            <div class="col-lg-5 col-xl-4">
+                <div class="card border-0 shadow-sm rounded-4 p-4 animate-in h-100" style="--delay: 0.2s">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+                        <div class="card-title fs-5 fw-bold text-dark mb-0 d-flex align-items-center gap-2"><i
+                                class="bi bi-target"></i> Mastery Level</div>
+                        <a href="{{ route('student.history') }}"
+                            class="btn btn-outline-secondary btn-sm fw-bold px-3 py-2 rounded-3">
+                            <i class="bi bi-clock-history"></i> History
+                        </a>
                     </div>
-                </div>
-
-                @if ($recentQuizzes->isNotEmpty())
-                    <div style="border-top: 1px solid var(--border); padding-top: 1.5rem;">
-                        <div
-                            style="font-size: 0.85rem; font-weight: 800; color: var(--text-light); text-transform: uppercase; margin-bottom: 1rem;">
-                            Recent Activity
-                        </div>
-                        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                            @foreach ($recentQuizzes as $quiz)
-                                <a href="{{ route('student.quiz.results', $quiz->id) }}"
-                                    style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; text-decoration: none; color: inherit; transition: all 0.2s;"
-                                    onmouseover="this.style.borderColor='var(--primary)'"
-                                    onmouseout="this.style.borderColor='var(--border)'">
-                                    <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                        <div
-                                            style="width: 36px; height: 36px; border-radius: 8px; background: {{ $quiz->type === 'daily' ? 'linear-gradient(135deg, #EEF2FF, #E0E7FF)' : 'var(--surface)' }}; color: {{ $quiz->type === 'daily' ? '#4F46E5' : 'var(--primary)' }}; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; border: 1px solid {{ $quiz->type === 'daily' ? '#C7D2FE' : 'var(--border)' }};">
-                                            {!! $quiz->type === 'daily' ? '<i class="bi bi-lightning-fill"></i>' : '<i class="bi bi-journal-text"></i>' !!}
-                                        </div>
-                                        <div>
-                                            <div style="font-size: 0.9rem; font-weight: 700; color: var(--text);">
-                                                {{ $quiz->type === 'daily' ? 'Daily Challenge' : 'Chapter Quiz' }}</div>
-                                            <div style="font-size: 0.75rem; color: var(--text-light); font-weight: 600;">
-                                                {{ $quiz->created_at->diffForHumans() }}</div>
-                                        </div>
-                                    </div>
-                                    <div style="text-align: right;">
-                                        <div style="font-size: 1.1rem; font-weight: 800; color: var(--text);">
-                                            {{ $quiz->score }}<span
-                                                style="font-size: 0.8rem; color: var(--text-light);">/{{ $quiz->total }}</span>
-                                        </div>
-                                        <div style="font-size: 0.75rem; color: var(--success); font-weight: 700;">
-                                            {{ round($quiz->accuracy) }}%</div>
-                                    </div>
-                                </a>
-                            @endforeach
-                        </div>
+                    <div class="progress-circle"
+                        style="background: conic-gradient(var(--primary) calc({{ $student->accuracy }} * 1%), var(--border) 0);">
+                        <div class="percent-label">{{ round($student->accuracy) }}%</div>
                     </div>
-                @endif
-            </div>
-
-            <div class="stat-card animate-in" style="--delay: 0.4s; grid-column: span 2;">
-                <div class="card-header">
-                    <div class="card-title"><i class="bi bi-bar-chart-fill"></i> Learning Momentum ({{ $days }}
-                        Days)</div>
-                    <div style="display: flex; align-items: center; gap: 1rem;">
-                        <form method="GET" action="{{ route('student.dashboard') }}">
-                            <input type="hidden" name="month" value="{{ $currentMonth }}">
-                            <input type="hidden" name="year" value="{{ $currentYear }}">
-                            <select name="days" onchange="this.form.submit()"
-                                style="padding: 0.25rem 0.5rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.75rem; font-weight: 700;">
-                                <option value="7" {{ $days == 7 ? 'selected' : '' }}>Last 7 Days</option>
-                                <option value="14" {{ $days == 14 ? 'selected' : '' }}>Last 14 Days</option>
-                                <option value="30" {{ $days == 30 ? 'selected' : '' }}>Last 30 Days</option>
-                            </select>
-                        </form>
-                        <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-light);">
-                            Total Quizzes: {{ collect($activityData)->sum('count') }}
-                        </div>
-                    </div>
-                </div>
-                <div
-                    style="height: 220px; box-sizing: border-box; display: flex; align-items: flex-end; gap: 0.5rem; padding: 40px 2.5rem 0.5rem 0.5rem; margin-top: 1rem; overflow-x: auto;">
-                    @php
-                        $maxCount = collect($activityData)->max('count') ?: 1;
-                    @endphp
-                    @foreach ($activityData as $data)
+                    <div class="text-center mt-4 mb-4">
                         @php
-                            $h = ($data['count'] / $maxCount) * 100;
-                            if ($data['count'] > 0) {
-                                $h = max($h, 15);
+                            $acc = $student->accuracy;
+                            $label = 'Beginner';
+                            $colorClass = 'text-secondary';
+                            if ($acc >= 90) {
+                                $label = 'Elite Expert';
+                                $colorClass = 'text-success';
+                            } elseif ($acc >= 80) {
+                                $label = 'High Proficiency';
+                                $colorClass = 'text-primary';
+                            } elseif ($acc >= 60) {
+                                $label = 'Average Learner';
+                                $colorClass = 'text-warning';
+                            } else {
+                                $label = 'Needs Focus';
+                                $colorClass = 'text-danger';
                             }
                         @endphp
-                        <div class="activity-bar-container"
-                            style="min-width: 30px; flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 0.5rem;">
-                            <div class="activity-bar"
-                                style="width: 100%; background: {{ $data['count'] > 0 ? 'var(--primary)' : '#F1F5F9' }}; 
-                                        height: {{ $h == 0 ? '4px' : $h . '%' }}; 
-                                        border-radius: 8px 8px 4px 4px; 
-                                        transition: all 0.5s ease;
-                                        position: relative;"
-                                title="{{ $data['date'] }}: {{ $data['count'] }} Quizzes">
-                                @if ($data['count'] > 0)
-                                    <div class="bar-tooltip">
-                                        @if ($data['count'] == 1)
-                                            Quiz: {{ $data['count'] }}
-                                        @else
-                                            Quizzes: {{ $data['count'] }}
-                                        @endif
-                                    </div>
-                                @endif
-                            </div>
-                            <span
-                                style="font-size: 0.65rem; font-weight: 800; color: var(--text-light);">{{ date('j', strtotime($data['date'])) }}</span>
+                        <div class="fw-bold fs-5 {{ $colorClass }}">{{ $label }}
                         </div>
-                    @endforeach
+                    </div>
+
+                    @if ($recentQuizzes->isNotEmpty())
+                        <div class="border-top pt-4 mt-auto">
+                            <div class="small fw-bold text-muted text-uppercase mb-3">
+                                Recent Activity
+                            </div>
+                            <div class="d-flex flex-column gap-3">
+                                @foreach ($recentQuizzes as $quiz)
+                                    <a href="{{ route('student.quiz.results', $quiz->id) }}"
+                                        class="text-decoration-none text-dark bg-light border rounded-4 p-3 d-flex align-items-center justify-content-between transition-all"
+                                        onmouseover="this.classList.add('border-primary', 'shadow-sm')"
+                                        onmouseout="this.classList.remove('border-primary', 'shadow-sm')">
+                                        <div class="d-flex align-items-center gap-3">
+                                            <div class="rounded-3 d-flex align-items-center justify-content-center border"
+                                                style="width: 40px; height: 40px; font-size: 1.25rem; {{ $quiz->type === 'daily' ? 'background: linear-gradient(135deg, #EEF2FF, #E0E7FF); color: #4F46E5; border-color: #C7D2FE !important;' : 'background: #fff; color: var(--bs-primary);' }}">
+                                                {!! $quiz->type === 'daily' ? '<i class="bi bi-lightning-fill"></i>' : '<i class="bi bi-journal-text"></i>' !!}
+                                            </div>
+                                            <div>
+                                                <div class="fw-bold" style="font-size: 0.95rem;">
+                                                    {{ $quiz->type === 'daily' ? 'Daily Challenge' : 'Chapter Quiz' }}
+                                                </div>
+                                                <div class="small fw-semibold text-muted">
+                                                    {{ $quiz->created_at->diffForHumans() }}</div>
+                                            </div>
+                                        </div>
+                                        <div class="text-end">
+                                            <div class="fw-bold fs-5">
+                                                {{ $quiz->score }}<span class="text-muted"
+                                                    style="font-size: 0.8rem;">/{{ $quiz->total }}</span>
+                                            </div>
+                                            <div class="small fw-bold text-success">
+                                                {{ round($quiz->accuracy) }}%</div>
+                                        </div>
+                                    </a>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
                 </div>
-                <div
-                    style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-light); font-weight: 700; margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1rem;">
-                    <span><i class="bi bi-calendar3"></i> {{ $days }} DAYS AGO</span>
-                    <span style="color: var(--primary);">TODAY ({{ date('M j') }})</span>
+            </div>
+
+            <div class="col-12">
+                <div class="card border-0 shadow-sm rounded-4 p-4 animate-in" style="--delay: 0.4s;">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+                        <div class="card-title fs-5 fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                            <i class="bi bi-bar-chart-fill"></i> Learning Momentum ({{ $days }} Days)
+                        </div>
+                        <div class="d-flex flex-wrap align-items-center gap-3">
+                            <form method="GET" action="{{ route('student.dashboard') }}">
+                                <input type="hidden" name="month" value="{{ $currentMonth }}">
+                                <input type="hidden" name="year" value="{{ $currentYear }}">
+                                <select name="days" onchange="this.form.submit()"
+                                    class="form-select form-select-sm fw-bold border" style="font-size: 0.8rem;">
+                                    <option value="7" {{ $days == 7 ? 'selected' : '' }}>Last 7 Days</option>
+                                    <option value="14" {{ $days == 14 ? 'selected' : '' }}>Last 14 Days</option>
+                                    <option value="30" {{ $days == 30 ? 'selected' : '' }}>Last 30 Days</option>
+                                </select>
+                            </form>
+                            <div class="small fw-bold text-muted">
+                                Total Quizzes: {{ collect($activityData)->sum('count') }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-end gap-2 overflow-x-auto w-100 pb-2"
+                        style="height: 220px; padding-top: 40px;">
+                        @php
+                            $maxCount = collect($activityData)->max('count') ?: 1;
+                        @endphp
+                        @foreach ($activityData as $data)
+                            @php
+                                $h = ($data['count'] / $maxCount) * 100;
+                                if ($data['count'] > 0) {
+                                    $h = max($h, 15);
+                                }
+                            @endphp
+                            <div class="d-flex flex-column justify-content-end align-items-center gap-2 h-100 flex-grow-1"
+                                style="min-width: 20px;">
+                                <div class="activity-bar position-relative transition-all {{ $data['count'] > 0 ? 'bg-primary' : 'bg-light' }}"
+                                    style="height: {{ $h == 0 ? '4px' : $h . '%' }};"
+                                    title="{{ $data['date'] }}: {{ $data['count'] }} Quizzes">
+                                    @if ($data['count'] > 0)
+                                        <div class="bar-tooltip">
+                                            @if ($data['count'] == 1)
+                                                Quiz: {{ $data['count'] }}
+                                            @else
+                                                Quizzes: {{ $data['count'] }}
+                                            @endif
+                                        </div>
+                                    @endif
+                                </div>
+                                <span class="fw-bold text-muted"
+                                    style="font-size: 0.7rem;">{{ date('j', strtotime($data['date'])) }}</span>
+                            </div>
+                        @endforeach
+                    </div>
+                    <div
+                        class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top small fw-bold text-muted w-100 flex-wrap">
+                        <span><i class="bi bi-calendar3"></i> {{ $days }} DAYS AGO</span>
+                        <span class="text-primary">TODAY ({{ date('M j') }})</span>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 @endsection
-
-@push('styles')
-    <style>
-        .activity-bar:hover {
-            background: var(--primary-dark) !important;
-            transform: scaleX(1.1);
-        }
-
-        .bar-tooltip {
-            position: absolute;
-            top: -25px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--text);
-            color: #fff;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 0.6rem;
-            opacity: 0;
-            transition: opacity 0.2s;
-            pointer-events: none;
-        }
-
-        .activity-bar:hover .bar-tooltip {
-            opacity: 1;
-        }
-    </style>
-@endpush

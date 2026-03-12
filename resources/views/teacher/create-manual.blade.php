@@ -1,53 +1,6 @@
 @extends('layouts.teacher')
 @section('title', 'Manual Text MCQ')
 
-@push('styles')
-    <style>
-        .manual-card {
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 2.5rem;
-        }
-
-        .form-section {
-            margin-bottom: 2rem;
-            padding-bottom: 1.5rem;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .form-section:last-child {
-            border-bottom: none;
-        }
-
-        .form-section-title {
-            font-size: 1rem;
-            font-weight: 700;
-            margin-bottom: 1.25rem;
-            color: var(--primary);
-            display: flex;
-            align-items: center;
-            gap: .5rem;
-        }
-
-        textarea.form-control {
-            min-height: 300px;
-            line-height: 1.6;
-            font-size: 1rem;
-        }
-
-        .helper-text {
-            margin-top: .5rem;
-            font-size: .8rem;
-            color: var(--muted);
-        }
-
-        .btn-large {
-            padding: .85rem 2rem;
-            font-size: 1rem;
-        }
-    </style>
-@endpush
-
 @section('content')
     <div class="breadcrumb animate-in">
         <a href="{{ route('teacher.dashboard') }}">Dashboard</a>
@@ -117,22 +70,6 @@
                         </div>
                         <div class="helper-text">Choose how you want the AI to generate questions for this content.</div>
 
-                        <style>
-                            .segmented-control input[type="radio"]:checked+label {
-                                background: var(--primary);
-                                color: #fff;
-                                box-shadow: 0 4px 15px rgba(var(--primary-rgb), 0.3);
-                            }
-
-                            .segmented-control label {
-                                color: var(--muted);
-                            }
-
-                            .segmented-control label:hover {
-                                color: var(--primary);
-                                background: rgba(var(--primary-rgb), 0.05);
-                            }
-                        </style>
                     </div>
                     <div class="form-group">
                         <label>Book / Topic Title</label>

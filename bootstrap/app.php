@@ -15,10 +15,12 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'student.streak' => \App\Http\Middleware\SyncStudentStreak::class,
+            'admin' => \App\Http\Middleware\AdminMiddleware::class,
         ]);
 
         $middleware->redirectGuestsTo(fn (Request $request) => match (true) {
             $request->is('teacher*') => route('teacher.login'),
+            $request->is('admin*') => route('admin.login'),
             default => route('student.login'),
         });
 

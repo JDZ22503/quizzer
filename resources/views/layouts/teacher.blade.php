@@ -21,7 +21,7 @@
 </head>
 
 <body>
-    <nav>
+    <nav class="main-nav">
         <a class="nav-brand" href="{{ route('teacher.dashboard') }}">
             Quiz<span>Platform</span>
             <span class="nav-badge">Teacher</span>
@@ -29,6 +29,9 @@
         @auth('teacher')
             <div class="nav-links">
                 <a href="{{ route('teacher.dashboard') }}"><i class="bi bi-grid-1x2"></i> Dashboard</a>
+                <a href="{{ route('teacher.ai-monitor') }}"><i class="bi bi-cpu"></i> AI Monitor</a>
+                <a href="{{ route('teacher.analytics') }}"><i class="bi bi-graph-up"></i> Analytics</a>
+                <a href="{{ route('teacher.settings') }}"><i class="bi bi-gear"></i> Settings</a>
                 <form method="POST" action="{{ route('teacher.logout') }}">
                     @csrf
                     <button type="submit" class="btn-logout">Logout</button>

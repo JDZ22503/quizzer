@@ -157,14 +157,25 @@
                 </div>
                 <div class="stat-card teal">
                     <div class="label">Total Chapters</div>
-                    <div class="value">{{ $books->sum(fn($b) => $b->chapters->count()) }}</div>
+                    <div class="value">{{ $totalChapters }}</div>
                 </div>
                 <div class="stat-card warn">
                     <div class="label">Questions Generated</div>
-                    <div class="value">{{ $books->sum(fn($b) => $b->chapters->sum(fn($c) => $c->questions->count())) }}
-                    </div>
+                    <div class="value">{{ $totalQuestions }}</div>
+                </div>
+                <div class="stat-card blue">
+                    <div class="label">AI Jobs Pending</div>
+                    <div class="value">{{ $aiJobsPending }}</div>
                 </div>
             </div>
+
+            @if ($aiJobsPending > 0)
+                <div class="alert alert-info animate-in" style="--delay: 0.2s">
+                    <i class="bi bi-cpu-fill me-2"></i> <strong>AI at Work:</strong> You have {{ $aiJobsPending }}
+                    generation job(s) in progress.
+                    <a href="#" class="alert-link ms-2">Monitor Progress →</a>
+                </div>
+            @endif
 
 
             <!-- BOOKS LIST -->

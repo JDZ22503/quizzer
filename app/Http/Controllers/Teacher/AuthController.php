@@ -18,12 +18,13 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $credentials = $request->validate([
-            'email'    => 'required|email',
+            'email' => 'required|email',
             'password' => 'required',
         ]);
 
         if (Auth::guard('teacher')->attempt($credentials, $request->boolean('remember'))) {
             $request->session()->regenerate();
+
             return redirect()->route('teacher.dashboard');
         }
 
@@ -38,11 +39,11 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         $data = $request->validate([
-            'name'                    => 'required|string|max:255',
-            'email'                   => 'required|email|unique:teachers,email',
-            'password'                => 'required|min:8|confirmed',
-            'phone'                   => 'nullable|string|max:20',
-            'subject_specialization'  => 'nullable|string|max:255',
+            'name' => 'required|string|min:3|max:255',
+            'email' => 'required|email|unique:teachers,email',
+            'password' => 'required|min:8|confirmed',
+            'phone' => 'nullable|string|min:10|max:20',
+            'subject_specialization' => 'required|string|max:255',
         ]);
 
         $data['password'] = Hash::make($data['password']);
@@ -59,6 +60,7 @@ class AuthController extends Controller
         Auth::guard('teacher')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
         return redirect()->route('teacher.login');
     }
 }

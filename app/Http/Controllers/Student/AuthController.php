@@ -41,12 +41,13 @@ class AuthController extends Controller
             'name'        => 'required|string|max:255',
             'email'       => 'required|email|unique:students,email',
             'password'    => 'required|min:8|confirmed',
-            'phone'       => 'nullable|string|max:20',
-            'whatsapp_number' => 'nullable|string|max:20',
-            'school'      => 'nullable|string|max:255',
-            'class'       => 'nullable|string|max:50',
-            'roll_number' => 'nullable|string|max:50',
-            'medium'      => 'required|in:english,gujarati',
+            'phone'           => 'nullable|string|min:10|max:20',
+            'whatsapp_number' => 'nullable|string|min:10|max:20',
+            'school'          => 'nullable|string|max:255',
+            'class'           => 'required|string|max:50',
+            'roll_number'     => 'nullable|string|max:50',
+            'medium'          => 'required|in:english,gujarati',
+            'gender'          => 'required|in:boy,girl,other',
         ]);
 
         $data['password'] = Hash::make($data['password']);
